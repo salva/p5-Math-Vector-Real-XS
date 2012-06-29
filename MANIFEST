@@ -1,0 +1,8 @@
+Changes
+Makefile.PL
+MANIFEST
+ppport.h
+README
+XS.xs
+t/Math-Vector-Real-XS.t
+lib/Math/Vector/Real/XS.pm
