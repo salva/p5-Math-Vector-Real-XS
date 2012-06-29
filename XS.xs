@@ -69,13 +69,38 @@ dist2(vector_av *v0, vector_av *v1) {
 
 static NV
 manhattan_dist(vector_av *v0, vector_av *v1) {
-    int len, i;
+    I32 len, i;
     NV d = 0;
     len = av_len(v0);
     check_len(v1, len);
     for (i = 0; i <= len; i++)
         d += fabs(av_fetch_nv(v0, i) - av_fetch_nv(v1, i));
     return d;
+}
+
+static NV
+dot_product(vector_av *v0, vector_av *v1, I32 len) {
+    NV acu = 0;
+    for (i = 0; i <= len; i++)
+        acu += av_fetch_nv(v0, i) * av_fetch_nv(v1, i);
+    return acu;
+}
+
+static void
+scalar_product(vector_av *v, NV s, I32 len, vector_av *out) {
+    I32 i;
+    for (i = 0; i <= len; i++)
+        av_store_nv(out, i, s * av_fetch_nv(v, i));
+}
+
+static NV
+norm2(vector_av *v, I32 len) {
+    NV acu = 0;
+    for (i = 0; i <= len; i++) {
+        NV c = av_fetch_nv(v, i);
+        acu += c * c;
+    }
+    return acu;
 }
 
 MODULE = Math::Vector::Real::XS		PACKAGE = Math::Vector::Real		
@@ -155,14 +180,16 @@ PPCODE:
     XSRETURN(1);
 
 vector_av *
-neg(v)
+neg(v, v1 = 0, rev = 0)
     vector_av *v
+    SV *v1 = NO_INIT
+    SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
 CODE:
     len = av_len(v);
     RETVAL = new_vector_av(len);
-    for (i = 0; i < len; i++)
+    for (i = 0; i <= len; i++)
         av_store_nv(RETVAL, i, -av_fetch_nv(v, i));
 OUTPUT:
     RETVAL
@@ -217,9 +244,8 @@ PPCODE:
     len = av_len(v0);
     if (SvROK(sv1) && (SvTYPE(v1 = (AV*)SvRV(sv1)) == SVt_PVAV)) {
         NV acu = 0;
-        for (i = 0; i <= len; i++)
-            acu += av_fetch_nv(v0, i) * av_fetch_nv(v1, i);
-        ST(0) = sv_2mortal(newSVnv(acu));
+        check_len(sv1, len);
+        ST(0) = sv_2mortal(newSVnv(dot_product(v0, v1, len)));
         XSRETURN(1);
     }
     else {
@@ -339,29 +365,18 @@ abs(v, v1 = 0, rev = 0)
     vector_av *v
     SV *v1 = NO_INIT
     SV *rev = NO_INIT
-PREINIT:
-    I32 len, i;
 CODE:
-    RETVAL = 0;
-    len = av_len(v);
-    for (i = 0; i <= len; i++) {
-        NV c = av_fetch_nv(v, i);
-        RETVAL += c * c;
-    }
-    RETVAL = sqrt(RETVAL);
+    RETVAL = sqrt(norm2(v, av_len(v)));
+OUTPUT:
+    RETVAL
 
 NV
 abs2(v)
     vector_av *v
-PREINIT:
-    I32 len, i;
-CODE:
-    RETVAL = 0;
-    len = av_len(v);
-    for (i = 0; i <= len; i++) {
-        NV c = av_fetch_nv(v, i);
-        RETVAL += c * c;
-    }
+CODE:    
+    RETVAL = norm2(v, av_len(v));
+OUTPUT:
+    RETVAL
 
 NV
 manhattan_norm(v)
@@ -375,6 +390,8 @@ CODE:
         NV c = av_fetch_nv(v, i);
         RETVAL += fabs(c);
     }
+OUTPUT:
+    RETVAL
 
 NV
 dist2(v0, v1)
@@ -394,3 +411,62 @@ NV
 manhattan_dist(v0, v1)
     vector_av *v0
     vector_av *v1
+
+vector_av *
+versor(v)
+    vector_av *v
+PREINIT:
+    I32 len, i;
+    NV norm2 = 0, inorm;
+CODE:
+    len = av_len(v);
+    RETVAL = new_vector_av(len);
+    for (i = 0; i <= len; i++) {
+        NV c = av_fetch_nv(v, i);
+        norm2 += c * c;
+    }
+    if (norm2 == 0)
+        Perl_croak(aTHX_ "Illegal division by zero");
+    inorm = 1.0 / sqrt(norm2);
+    for (i = 0; i <= len; i++)
+        av_store_nv(RETVAL, i, inorm * av_fetch_nv(v, i));
+OUTPUT:
+    RETVAL
+
+SV *
+max_component_index(v)
+    vector_av *v
+PREINIT:
+    I32 len, i, best_i;
+    NV best;
+CODE:
+    len = av_len(v);
+    if (len < 0) RETVAL = &PL_sv_undef;
+    else {
+        best = -1;
+        for (i = 0; i <= len; i++) {
+            NV c = fabs(av_fetch_nv(v, i));
+            if (c > best) {
+                best = c;
+                best_i = i;
+            }
+        }
+        RETVAL = newSVuv(best_i);
+    }
+            
+void
+decompose(v0, v1)
+    vector_av *v0
+    vector_av *v1
+PREINIT
+    I32 len, i;
+    vector_av p, n;
+    NV f, n2;
+CODE:
+    len = av_len(v0);
+    check_len(v1, len);
+    n2 = norm2(v0, len);
+    if (n2 == 0) Perl_croak("Illegal division by zero");
+    p = new_vector_av(len);
+    scalar_product(v0, dot_product(v0, v1, len) / n2, len, p);
+    n = working here!!!
