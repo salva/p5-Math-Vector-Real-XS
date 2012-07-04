@@ -7,217 +7,31 @@
 #include "XSUB.h"
 
 #include "ppport.h"
-
-typedef AV vector_av;
-
-static void
-check_len(pTHX_ AV *av, I32 len) {
-    if (len != av_len(av)) croak("vector dimensions do not match");
-}
-
-static NV
-av_fetch_nv(pTHX_ AV *av, I32 ix) {
-    SV **svp = av_fetch(av, ix, 0);
-    if (svp) return SvNV(*svp);
-    return 0;
-}
-
-void
-av_store_nv(pTHX_ AV *av, I32 ix, NV nv) {
-    av_store(av, ix, newSVnv(nv));
-}
-
-static SV*
-av_fetch_lvalue(pTHX_ AV *av, I32 ix) {
-    SV **svp = av_fetch(av, ix, 1);
-    if (!svp) croak("unable to get lvalue element from array");
-    return *svp;
-}
-
-static AV *
-sv_to_vector_av(pTHX_ SV *sv) {
-    if (SvROK(sv)) {
-        AV *av = (AV*)SvRV(sv);
-        if (SvTYPE(av) == SVt_PVAV) return av;
-    }
-    croak("argument is not an object of class Math::Vector::Real or can not be coerced into one");
-}
-
-static void
-sv_set_vector_av(pTHX_ SV *sv, vector_av *av) {
-    sv_upgrade(sv, SVt_IV);
-    SvRV_set(sv, (SV*)(av));
-    SvROK_on(sv);
-    sv_bless(sv, gv_stashpv("Math::Vector::Real", GV_ADD));
-}
-
-static AV *
-new_vector_av(pTHX_ I32 len) {
-    AV *av = newAV();
-    av_extend(av, len);
-    return av;
-}
-
-static AV *
-clone_vector_av(pTHX_ AV *v, I32 len) {
-    I32 i;
-    AV *av = new_vector_av(aTHX_ len);
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ av, i, av_fetch_nv(aTHX_ v, i));
-    return av;
-}
-
-static NV
-dist2(pTHX_ vector_av *v0, vector_av *v1, I32 len) {
-    I32 i;
-    NV d2 = 0;
-    for (i = 0; i <= len; i++) {
-        NV delta = av_fetch_nv(aTHX_ v0, i) - av_fetch_nv(aTHX_ v1, i);
-        d2 += delta * delta;
-    }
-    return d2;
-}
-
-static NV
-dist(pTHX_ vector_av *v0, vector_av *v1, I32 len) {
-    return sqrt(dist2(aTHX_ v0, v1, len));
-}
-
-static NV
-manhattan_dist(pTHX_ vector_av *v0, vector_av *v1) {
-    I32 len, i;
-    NV d = 0;
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    for (i = 0; i <= len; i++)
-        d += fabs(av_fetch_nv(aTHX_ v0, i) - av_fetch_nv(aTHX_ v1, i));
-    return d;
-}
-
-static NV
-dot_product(pTHX_ vector_av *v0, vector_av *v1, I32 len) {
-    I32 i;
-    NV acu;
-    for (acu = 0, i = 0; i <= len; i++)
-        acu += av_fetch_nv(aTHX_ v0, i) * av_fetch_nv(aTHX_ v1, i);
-    return acu;
-}
-
-static void
-scalar_product(pTHX_ vector_av *v, NV s, I32 len, vector_av *out) {
-    I32 i;
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ out, i, s * av_fetch_nv(aTHX_ v, i));
-}
-
-static void
-subtract(pTHX_ vector_av *v0, vector_av *v1, I32 len, vector_av *out) { /* out = v0 - v1 */
-    I32 i;
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ out, i, av_fetch_nv(aTHX_ v0, i) - av_fetch_nv(aTHX_ v1, i));
-}
-
-static void
-subtract_and_neg_me(pTHX_ vector_av *v0, vector_av *v1, I32 len) { /* v0 = v1 - v0 */
-    I32 i;
-    for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v0, i);
-        sv_setnv(sv, av_fetch_nv(aTHX_ v1, i) - SvNV(sv));
-    }
-}
-
-static NV
-norm2(pTHX_ vector_av *v, I32 len) {
-    I32 i;
-    NV acu;
-    for (i = 0, acu = 0; i <= len; i++) {
-        NV c = av_fetch_nv(aTHX_ v, i);
-        acu += c * c;
-    }
-    return acu;
-}
-
-static NV
-norm(pTHX_ vector_av *v, I32 len) {
-    return sqrt(norm2(aTHX_ v, len));
-}
-
-static I32
-min_component_index(pTHX_ vector_av *v, I32 len) {
-    I32 i;
-    I32 best = 0;
-    NV min = fabs(av_fetch_nv(aTHX_ v, best));
-    for (i = 1; i <= len; i++) {
-        NV c = fabs(av_fetch_nv(aTHX_ v, i));
-        if (c < min) {
-            min = c;
-            best = i;
-        }
-    }
-    return best;
-}
-
-static I32
-max_component_index(pTHX_ vector_av *v, I32 len) {
-    I32 i;
-    I32 best = 0;
-    NV max = 0;
-    for (i = 0; i <= len; i++) {
-        NV c = fabs(av_fetch_nv(aTHX_ v, i));
-        if (c > max) {
-            max = c;
-            best = i;
-        }
-    }
-    return best;
-}
-
-static void
-axis_versor(pTHX_ I32 len, I32 axis, vector_av *out) {
-    I32 i;
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ out, i, (i == axis ? 1 : 0));
-}
-
-static void
-cross_product_3d(pTHX_ vector_av *v0, vector_av *v1, vector_av *out) {
-    I32 i;
-    NV x0 = av_fetch_nv(aTHX_ v0, 0);
-    NV y0 = av_fetch_nv(aTHX_ v0, 1);
-    NV z0 = av_fetch_nv(aTHX_ v0, 2);
-    NV x1 = av_fetch_nv(aTHX_ v1, 0);
-    NV y1 = av_fetch_nv(aTHX_ v1, 1);
-    NV z1 = av_fetch_nv(aTHX_ v1, 2);
-    av_store_nv(aTHX_ out, 0, y0 * z1 - y1 * z0);
-    av_store_nv(aTHX_ out, 1, z0 * x1 - z1 * x0);
-    av_store_nv(aTHX_ out, 2, x0 * y1 - x1 * y0);
-}
-
-static void
-versor_me_unsafe(pTHX_ vector_av *v, I32 len) {
-    NV inr = 1.0 / norm(aTHX_ v, len);
-    I32 i;
-    for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v, i);
-        sv_setnv(sv, inr * SvNV(sv));
-    }
-}
+#include "mvr.h"
 
 MODULE = Math::Vector::Real::XS		PACKAGE = Math::Vector::Real		
 PROTOTYPES: DISABLE
 
-vector_av *
+BOOT:
+    mvr_on_boot(aTHX);
+
+void
+CLONE(...)
+CODE:
+    mvr_on_clone(aTHX);
+
+mvr 
 V(...)
 PREINIT:
     I32 i;
 CODE:
-    RETVAL = new_vector_av(aTHX_ items - 1);
+    RETVAL = mvr_new(aTHX_ items - 1);
     for (i = 0; i < items; i++)
-        av_store_nv(aTHX_ RETVAL, i, SvNV(ST(i)));
+        mvr_set(aTHX_ RETVAL, i, SvNV(ST(i)));
 OUTPUT:
     RETVAL
 
-vector_av *
+mvr 
 zero(klass, dim)
     SV *klass = NO_INIT
     I32 dim
@@ -225,13 +39,13 @@ PREINIT:
     I32 i;
 CODE:
     if (dim < 0) Perl_croak(aTHX_ "negative dimension");
-    RETVAL = new_vector_av(aTHX_ dim - 1);
+    RETVAL = mvr_new(aTHX_ dim - 1);
     for (i = 0; i < dim; i++)
-        av_store_nv(aTHX_ RETVAL, i, 0);
+        mvr_set(aTHX_ RETVAL, i, 0);
 OUTPUT:
     RETVAL
 
-vector_av *
+mvr 
 axis_versor(klass, dim, axis)
     SV *klass = NO_INIT
     I32 dim
@@ -239,122 +53,114 @@ axis_versor(klass, dim, axis)
 CODE:
     if (dim < 0) Perl_croak(aTHX_ "negative_dimension");
     if ((axis < 0) || (axis >= dim)) Perl_croak(aTHX_ "axis index out of range");
-    RETVAL = new_vector_av(aTHX_ dim - 1);
-    axis_versor(aTHX_ dim - 1, axis, RETVAL);
+    RETVAL = mvr_new(aTHX_ dim - 1);
+    mvr_axis_versor(aTHX_ dim - 1, axis, RETVAL);
 OUTPUT:
     RETVAL
 
-vector_av *
+mvr 
 add(v0, v1, rev = 0)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
 CODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    RETVAL = new_vector_av(aTHX_ len);
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ RETVAL, i, av_fetch_nv(aTHX_ v0, i) + av_fetch_nv(aTHX_ v1, i));
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = mvr_new(aTHX_ len);
+    mvr_add(aTHX_ v0, v1, len, RETVAL);
 OUTPUT:
     RETVAL
 
 void
 add_me(v0, v1, rev = 0)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
 PPCODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v0, i);
-        sv_setnv(sv, SvNV(sv) + av_fetch_nv(aTHX_ v1, i));
-    }
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    mvr_add_me(aTHX_ v0, v1, len);
     XSRETURN(1);
 
-vector_av *
+mvr 
 neg(v, v1 = 0, rev = 0)
-    vector_av *v
+    mvr v
     SV *v1 = NO_INIT
     SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
 CODE:
-    len = av_len(v);
-    RETVAL = new_vector_av(aTHX_ len);
-    for (i = 0; i <= len; i++)
-        av_store_nv(aTHX_ RETVAL, i, -av_fetch_nv(aTHX_ v, i));
+    len = mvr_len(aTHX_ v);
+    RETVAL = mvr_new(aTHX_ len);
+    mvr_neg(aTHX_ v, len, RETVAL);
 OUTPUT:
     RETVAL
 
-vector_av *
+mvr 
 sub(v0, v1, rev = &PL_sv_undef)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev
 PREINIT:
     I32 len, i;
 CODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
     if (SvTRUE(rev)) {
-        vector_av *tmp = v1;
+        mvr tmp = v1;
         v1 = v0;
         v0 = tmp;
     }
-    RETVAL = new_vector_av(aTHX_ len);
-    subtract(aTHX_ v0, v1, len, RETVAL);
+    RETVAL = mvr_new(aTHX_ len);
+    mvr_subtract(aTHX_ v0, v1, len, RETVAL);
 OUTPUT:
     RETVAL
 
 void
 sub_me(v0, v1, rev = 0)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
 PPCODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v0, i);
-        sv_setnv(sv, SvNV(sv) - av_fetch_nv(aTHX_ v1, i));
-    }
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    mvr_subtract_me(aTHX_ v0, v1, len);
     XSRETURN(1);
 
 void
 mul(v0, sv1, rev = 0)
-    vector_av *v0;
+    mvr v0;
     SV *sv1
     SV *rev = NO_INIT
 PREINIT:
     I32 len, i;
-    vector_av *v1;
+    mvr v1;
 PPCODE:
     /* fprintf(stderr, "using mul operator from XS\n"); fflush(stderr); */
-    len = av_len(v0);
+    len = mvr_len(aTHX_ v0);
     if (SvROK(sv1) && (SvTYPE(v1 = (AV*)SvRV(sv1)) == SVt_PVAV)) {
         NV acu = 0;
-        check_len(aTHX_ v1, len);
-        ST(0) = sv_2mortal(newSVnv(dot_product(aTHX_ v0, v1, len)));
+        mvr_check_len(aTHX_ v1, len);
+        ST(0) = sv_2mortal(newSVnv(mvr_dot_product(aTHX_ v0, v1, len)));
         XSRETURN(1);
     }
     else {
-        AV *r = new_vector_av(aTHX_ len);
-        scalar_product(aTHX_ v0, SvNV(sv1), len, r);
+        mvr r = mvr_new(aTHX_ len);
+        mvr_scalar_product(aTHX_ v0, SvNV(sv1), len, r);
         ST(0) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(0), r);
+        sv_set_mvr(aTHX_ ST(0), r);
         XSRETURN(1);
     }
 
 void
 mul_me(v0, sv1, rev = 0)
-    vector_av *v0
+    mvr v0
     SV *sv1
     SV *rev = NO_INIT
 PREINIT:
@@ -364,16 +170,16 @@ PPCODE:
     if (SvROK(sv1) && (SvTYPE(SvRV(sv1)) == SVt_PVAV))
         Perl_croak(aTHX_ "can not multiply by a vector in place as the result is not a vector");
     nv1 = SvNV(sv1);
-    len = av_len(v0);
+    len = mvr_len(aTHX_ v0);
     for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v0, i);
+        SV *sv = mvr_get_sv(aTHX_ v0, i);
         sv_setnv(sv, nv1 * SvNV(sv));
     }
     XSRETURN(1);
 
-vector_av *
+mvr 
 div(v0, sv1, rev = &PL_sv_undef)
-    vector_av *v0
+    mvr v0
     SV *sv1
     SV *rev
 PREINIT:
@@ -385,15 +191,15 @@ CODE:
     nv1 = SvNV(sv1);
     if (nv1 == 0)
         Perl_croak(aTHX_ "illegal division by zero");
-    len = av_len(v0);
-    RETVAL = new_vector_av(aTHX_ len);
-    scalar_product(aTHX_ v0, 1.0 / nv1, len, RETVAL);
+    len = mvr_len(aTHX_ v0);
+    RETVAL = mvr_new(aTHX_ len);
+    mvr_scalar_product(aTHX_ v0, 1.0 / nv1, len, RETVAL);
 OUTPUT:
     RETVAL
 
 void
 div_me(v0, sv1, rev = 0)
-    vector_av *v0
+    mvr v0
     SV *sv1
     SV *rev = NO_INIT
 PREINIT:
@@ -403,33 +209,27 @@ CODE:
     if (SvROK(sv1) && (SvTYPE(SvRV(sv1)) == SVt_PVAV))
         Perl_croak(aTHX_ "can't use vector as dividend");
     nv1 = SvNV(sv1);
-    if (nv1 == 0)
-        Perl_croak(aTHX_ "illegal division by zero");
-    inv1 = 1.0 / nv1;
-    len = av_len(v0);
-    for (i = 0; i <= len; i++) {
-        SV *sv = av_fetch_lvalue(aTHX_ v0, i);
-        sv_setnv(sv, inv1 * SvNV(sv));
-    }
+    if (nv1 == 0) Perl_croak(aTHX_ "illegal division by zero");
+    mvr_scalar_product_me(aTHX_ v0, 1.0 / nv1, mvr_len(aTHX_ v0));
 
-vector_av *
+mvr 
 cross(v0, v1, rev = &PL_sv_undef)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v0);
+    len = mvr_len(aTHX_ v0);
     if (len == 2) {
-        check_len(aTHX_ v1, 2);
+        mvr_check_len(aTHX_ v1, 2);
         if (SvTRUE(rev)) {
-            vector_av *tmp = v0;
+            mvr tmp = v0;
             v0 = v1;
             v1 = tmp;
         }
-        RETVAL = new_vector_av(aTHX_ 2);
-        cross_product_3d(aTHX_ v0, v1, RETVAL);
+        RETVAL = mvr_new(aTHX_ 2);
+        mvr_cross_product_3d(aTHX_ v0, v1, RETVAL);
     }
     else {
         Perl_croak(aTHX_ "cross product not defined or not implemented for the given dimension");
@@ -439,164 +239,145 @@ OUTPUT:
 
 SV *
 equal(v0, v1, rev = 0)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev = NO_INIT
 PREINIT:
-    I32 len, i;
+    I32 len;
 CODE:
-    RETVAL = &PL_sv_yes;
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    for (i = 0; i <= len; i++) {
-        if (av_fetch_nv(aTHX_ v0, i) != av_fetch_nv(aTHX_ v1, i)) {
-            RETVAL = &PL_sv_no;
-            break;
-        }
-    }
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = (mvr_equal(aTHX_ v0, v1, len) ? &PL_sv_yes : &PL_sv_no);
 OUTPUT:
     RETVAL
             
 SV *
 nequal(v0, v1, rev = 0)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
     SV *rev = NO_INIT
 PREINIT:
-    I32 len, i;
+    I32 len;
 CODE:
-    RETVAL = &PL_sv_no;
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    for (i = 0; i <= len; i++) {
-        if (av_fetch_nv(aTHX_ v0, i) != av_fetch_nv(aTHX_ v1, i)) {
-            RETVAL = &PL_sv_yes;
-            break;
-        }
-    }
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = (mvr_equal(aTHX_ v0, v1, len) ? &PL_sv_no : &PL_sv_yes);
 OUTPUT:
     RETVAL
             
 NV
 abs(v, v1 = 0, rev = 0)
-    vector_av *v
+    mvr v
     SV *v1 = NO_INIT
     SV *rev = NO_INIT
 CODE:
-    RETVAL = norm(aTHX_ v, av_len(v));
+    RETVAL = mvr_norm(aTHX_ v, mvr_len(aTHX_ v));
 OUTPUT:
     RETVAL
 
 NV
 abs2(v)
-    vector_av *v
+    mvr v
 CODE:    
-    RETVAL = norm2(aTHX_ v, av_len(v));
+    RETVAL = mvr_norm2(aTHX_ v, mvr_len(aTHX_ v));
 OUTPUT:
     RETVAL
 
 NV
 manhattan_norm(v)
-    vector_av *v
-PREINIT:
-    I32 len, i;
+    mvr v
 CODE:
-    RETVAL = 0;
-    len = av_len(v);
-    for (i = 0; i <= len; i++) {
-        NV c = av_fetch_nv(aTHX_ v, i);
-        RETVAL += fabs(c);
-    }
+    RETVAL = mvr_manhattan_norm(aTHX_ v, mvr_len(aTHX_ v));
 OUTPUT:
     RETVAL
 
 NV
 dist2(v0, v1)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    RETVAL = dist2(aTHX_ v0, v1, len);
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = mvr_dist2(aTHX_ v0, v1, len);
 OUTPUT:
     RETVAL
 
 NV
 dist(v0, v1)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    RETVAL = dist(aTHX_ v0, v1, len);
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = mvr_dist(aTHX_ v0, v1, len);
 OUTPUT:
     RETVAL
 
 NV
 manhattan_dist(v0, v1)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    RETVAL = manhattan_dist(aTHX_ v0, v1);
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = mvr_manhattan_dist(aTHX_ v0, v1);
 OUTPUT:
     RETVAL
 
-vector_av *
+mvr 
 versor(v)
-    vector_av *v
+    mvr v
 PREINIT:
     I32 len, i;
     NV n;
 CODE:
-    len = av_len(v);
-    n = norm(aTHX_ v, len);
+    len = mvr_len(aTHX_ v);
+    n = mvr_norm(aTHX_ v, len);
     if (n == 0) Perl_croak(aTHX_ "Illegal division by zero");
-    RETVAL = new_vector_av(aTHX_ len);
-    scalar_product(aTHX_ v, 1.0 / n, len, RETVAL);
+    RETVAL = mvr_new(aTHX_ len);
+    mvr_scalar_product(aTHX_ v, 1.0 / n, len, RETVAL);
 OUTPUT:
     RETVAL
 
 SV *
 max_component_index(v)
-    vector_av *v
+    mvr v
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v);
+    len = mvr_len(aTHX_ v);
     if (len < 0) RETVAL = &PL_sv_undef;
-    else RETVAL = newSViv(max_component_index(aTHX_ v, len));
+    else RETVAL = newSViv(mvr_max_component_index(aTHX_ v, len));
 OUTPUT:
     RETVAL
 
 SV *
 min_component_index(v)
-    vector_av *v
+    mvr v
 PREINIT:
     I32 len;
 CODE:
-    len = av_len(v);
+    len = mvr_len(aTHX_ v);
     if (len < 0) RETVAL = &PL_sv_undef;
-    else RETVAL = newSViv(min_component_index(aTHX_ v, len));
+    else RETVAL = newSViv(mvr_min_component_index(aTHX_ v, len));
 OUTPUT:
    RETVAL
 
 NV
 max_component(v)
-    vector_av *v
+    mvr v
 PREINIT:
     I32 len, i;
 CODE:
-    len = av_len(v);
+    len = mvr_len(aTHX_ v);
     for (RETVAL = 0, i = 0; i <= len; i++) {
-        NV c = fabs(av_fetch_nv(aTHX_ v, i));
+        NV c = fabs(mvr_get(aTHX_ v, i));
         if (c > RETVAL) RETVAL = c;
     }
 OUTPUT:
@@ -604,14 +385,14 @@ OUTPUT:
 
 NV
 min_component(v)
-    vector_av *v
+    mvr v
 PREINIT:
     I32 len, i;
 CODE:
-    len = av_len(v);
-    RETVAL = fabs(av_fetch_nv(aTHX_ v, 0));
+    len = mvr_len(aTHX_ v);
+    RETVAL = fabs(mvr_get(aTHX_ v, 0));
     for (i = 1; i <= len; i++) {
-        NV c = fabs(av_fetch_nv(aTHX_ v, i));
+        NV c = fabs(mvr_get(aTHX_ v, i));
         if (c < RETVAL) RETVAL = c;
     }
 OUTPUT:
@@ -624,62 +405,62 @@ PPCODE:
     if (items <= 1) XSRETURN(0);
     else {
         I32 len, j;
-        vector_av *min, *max;
-        AV *v = sv_to_vector_av(aTHX_ ST(1));
-        len = av_len(v);
-        min = clone_vector_av(aTHX_ v, len);
-        max = clone_vector_av(aTHX_ v, len);
+        mvr min, max;
+        mvr v = mvr_from_sv(aTHX_ ST(1));
+        len = mvr_len(aTHX_ v);
+        min = mvr_clone(aTHX_ v, len);
+        max = mvr_clone(aTHX_ v, len);
         for (j = 2; j < items; j++) {
             I32 i;
-            v = sv_to_vector_av(aTHX_ ST(j));
-            check_len(aTHX_ v, len);
+            v = mvr_from_sv(aTHX_ ST(j));
+            mvr_check_len(aTHX_ v, len);
             for (i = 0; i <= len; i++) {
-                NV c = av_fetch_nv(aTHX_ v, i);
-                SV *sv = av_fetch_lvalue(aTHX_ max, i);
+                NV c = mvr_get(aTHX_ v, i);
+                SV *sv = mvr_get_sv(aTHX_ max, i);
                 if (c > SvNV(sv)) sv_setnv(sv, c);
                 else {
-                    sv = av_fetch_lvalue(aTHX_ min, i);
+                    sv = mvr_get_sv(aTHX_ min, i);
                     if (c < SvNV(sv)) sv_setnv(sv, c);
                 }
             }
         }
         EXTEND(SP, 2);
         ST(0) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(0), min);
+        sv_set_mvr(aTHX_ ST(0), min);
         ST(1) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(1), max);
+        sv_set_mvr(aTHX_ ST(1), max);
         XSRETURN(2);
     }
 
 void
 decompose(v0, v1)
-    vector_av *v0
-    vector_av *v1
+    mvr v0
+    mvr v1
 PREINIT:
     I32 len, i;
-    vector_av *p, *n;
+    mvr p, n;
     NV f, nr;
 PPCODE:
-    len = av_len(v0);
-    check_len(aTHX_ v1, len);
-    nr = norm(aTHX_ v0, len);
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    nr = mvr_norm(aTHX_ v0, len);
     if (nr == 0) Perl_croak(aTHX_ "Illegal division by zero");
-    p = new_vector_av(aTHX_ len);
-    scalar_product(aTHX_ v0, dot_product(aTHX_ v0, v1, len) / nr, len, p);
+    p = mvr_new(aTHX_ len);
+    mvr_scalar_product(aTHX_ v0, mvr_dot_product(aTHX_ v0, v1, len) / nr, len, p);
     if (GIMME_V == G_ARRAY) {
-        n = new_vector_av(aTHX_ len);
-        subtract(aTHX_ v1, p, len, n);
+        n = mvr_new(aTHX_ len);
+        mvr_subtract(aTHX_ v1, p, len, n);
         EXTEND(SP, 2);
         ST(0) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(0), p);
+        sv_set_mvr(aTHX_ ST(0), p);
         ST(1) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(1), n);
+        sv_set_mvr(aTHX_ ST(1), n);
         XSRETURN(2);
     }
     else {
-        subtract_and_neg_me(aTHX_ p, v1, len);
+        mvr_subtract_and_neg_me(aTHX_ p, v1, len);
         ST(0) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(0), p);
+        sv_set_mvr(aTHX_ ST(0), p);
         XSRETURN(1);
     }
 
@@ -693,58 +474,58 @@ PPCODE:
     if (dim <= 0) Perl_croak(aTHX_ "negative dimension");
     EXTEND(SP, dim);
     for (j = 0; j < dim; j++) {
-        AV *v = new_vector_av(aTHX_ dim - 1);
+        mvr v = mvr_new(aTHX_ dim - 1);
         ST(j) = sv_newmortal();
-        sv_set_vector_av(aTHX_ ST(j), v);
-        axis_versor(aTHX_ dim - 1, j, v);
+        sv_set_mvr(aTHX_ ST(j), v);
+        mvr_axis_versor(aTHX_ dim - 1, j, v);
     }
     XSRETURN(dim);
 
 void
 rotation_base_3d(dir)
-    vector_av *dir
+    mvr dir
 PREINIT:
     I32 len, i;
-    vector_av *u, *v, *w;
+    mvr u, v, w;
     NV n;
 PPCODE:
-    len = av_len(dir);
+    len = mvr_len(aTHX_ dir);
     if (len != 2) Perl_croak(aTHX_ "rotation_base_3d requires a 3D vector");
-    n = norm(aTHX_ dir, len);
+    n = mvr_norm(aTHX_ dir, len);
     if (n == 0) Perl_croak(aTHX_ "Illegal division by zero");
     EXTEND(SP, 3);
-    u = new_vector_av(aTHX_ 2);
+    u = mvr_new(aTHX_ 2);
     ST(0) = sv_newmortal();
-    sv_set_vector_av(aTHX_ ST(0), u);
-    v = new_vector_av(aTHX_ 2);
+    sv_set_mvr(aTHX_ ST(0), u);
+    v = mvr_new(aTHX_ 2);
     ST(1) = sv_newmortal();
-    sv_set_vector_av(aTHX_ ST(1), v);
-    w = new_vector_av(aTHX_ 2);
+    sv_set_mvr(aTHX_ ST(1), v);
+    w = mvr_new(aTHX_ 2);
     ST(2) = sv_newmortal();
-    sv_set_vector_av(aTHX_ ST(2), w);
-    scalar_product(aTHX_ dir, 1.0 / n, len, u);
-    axis_versor(aTHX_ len, min_component_index(aTHX_ u, len), w);
-    cross_product_3d(aTHX_ u, w, v);
-    versor_me_unsafe(aTHX_ v, len);
-    cross_product_3d(aTHX_ u, v, w);
+    sv_set_mvr(aTHX_ ST(2), w);
+    mvr_scalar_product(aTHX_ dir, 1.0 / n, len, u);
+    mvr_axis_versor(aTHX_ len, mvr_min_component_index(aTHX_ u, len), w);
+    mvr_cross_product_3d(aTHX_ u, w, v);
+    mvr_versor_me_unsafe(aTHX_ v, len);
+    mvr_cross_product_3d(aTHX_ u, v, w);
     XSRETURN(3);
 
 void
 select_in_ball(v, r, ...)
-    vector_av *v
+    mvr v
     NV r
 PREINIT:
     I32 len, i, to;
     NV r2;
 PPCODE:
-    len = av_len(v);
+    len = mvr_len(aTHX_ v);
     r2 = r * r;
     for (to = 0, i = 2; i < items; i++) {
-        vector_av *e = sv_to_vector_av(aTHX_ ST(i));
-        check_len(aTHX_ e, len);
-        if (dist2(aTHX_ v, e, len) <= r2) {
+        mvr e = mvr_from_sv(aTHX_ ST(i));
+        mvr_check_len(aTHX_ e, len);
+        if (mvr_dist2(aTHX_ v, e, len) <= r2) {
             ST(to) = sv_newmortal();
-            sv_set_vector_av(aTHX_ ST(to), clone_vector_av(aTHX_ e, len));
+            sv_set_mvr(aTHX_ ST(to), mvr_clone(aTHX_ e, len));
             to++;
         }
     }
@@ -752,7 +533,7 @@ PPCODE:
 
 SV *
 select_in_ball_ref2bitmap(v, r, p)
-    vector_av *v
+    mvr v
     NV r
     AV *p
 PREINIT:
@@ -761,7 +542,7 @@ PREINIT:
     NV r2;
     unsigned char *pv;
 CODE:
-    len = av_len(v);
+    len = mvr_len(aTHX_ v);
     r2 = r * r;
     size = av_len(p);
     bytes = (size + 7) / 8;
@@ -772,11 +553,11 @@ CODE:
     memset(pv, 0, bytes);
     for (bit = 1, i = 0; i < size; i++) {
         SV **svp = av_fetch(p, i, 0);
-        vector_av *e;
+        mvr e;
         if (!svp) Perl_croak(aTHX_ "undef element found in array");
-        e = sv_to_vector_av(aTHX_ *svp);
-        check_len(aTHX_ e, len);
-        if (dist2(aTHX_ v, e, len) <= r2) *pv |= bit;
+        e = mvr_from_sv(aTHX_ *svp);
+        mvr_check_len(aTHX_ e, len);
+        if (mvr_dist2(aTHX_ v, e, len) <= r2) *pv |= bit;
         bit <<= 1;
         if (!bit) {
             pv++;

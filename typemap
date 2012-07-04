@@ -1,11 +1,11 @@
 TYPEMAP
-vector_av *        T_VECTOR_AV
+mvr        T_MVR
 
 
 INPUT
-T_VECTOR_AV
-        $var = sv_to_vector_av(aTHX_ $arg);
+T_MVR
+        $var = mvr_from_sv(aTHX_ $arg);
 
 OUTPUT
-T_VECTOR_AV
-        sv_set_vector_av(aTHX_ $arg, $var);
+T_MVR
+        sv_set_mvr(aTHX_ $arg, $var);
