@@ -4,8 +4,8 @@ vector_av *        T_VECTOR_AV
 
 INPUT
 T_VECTOR_AV
-        $var = sv_to_vector_av($arg);
+        $var = sv_to_vector_av(aTHX_ $arg);
 
 OUTPUT
 T_VECTOR_AV
-        sv_set_vector_av($arg, $var);
+        sv_set_vector_av(aTHX_ $arg, $var);
