@@ -58,7 +58,7 @@ static AV *
 clone_vector_av(AV *v, I32 len) {
     I32 i;
     AV *av = new_vector_av(len);
-    for (i = 0; i < len; i++)
+    for (i = 0; i <= len; i++)
         av_store_nv(av, i, av_fetch_nv(v, i));
     return av;
 }
@@ -610,14 +610,16 @@ box(klass, ...)
 PPCODE:
     if (items <= 1) XSRETURN(0);
     else {
-        I32 len, i , j;
+        I32 len, j;
         vector_av *min, *max;
         AV *v = sv_to_vector_av(ST(1));
         len = av_len(v);
         min = clone_vector_av(v, len);
         max = clone_vector_av(v, len);
-        for (j = 2; j < items; i++) {
+        for (j = 2; j < items; j++) {
+            I32 i;
             v = sv_to_vector_av(ST(j));
+            check_len(v, len);
             for (i = 0; i <= len; i++) {
                 NV c = av_fetch_nv(v, i);
                 SV *sv = av_fetch_lvalue(max, i);
@@ -713,3 +715,60 @@ PPCODE:
     versor_me_unsafe(v, len);
     cross_product_3d(u, v, w);
     XSRETURN(3);
+
+void
+select_in_ball(v, r, ...)
+    vector_av *v
+    NV r
+PREINIT:
+    I32 len, i, to;
+    NV r2;
+PPCODE:
+    len = av_len(v);
+    r2 = r * r;
+    for (to = 0, i = 2; i < items; i++) {
+        vector_av *e = sv_to_vector_av(ST(i));
+        check_len(e, len);
+        if (dist2(v, e, len) <= r2) {
+            ST(to) = sv_newmortal();
+            sv_set_vector_av(ST(to), clone_vector_av(e, len));
+            to++;
+        }
+    }
+    XSRETURN(to);
+
+SV *
+select_in_ball_ref2bitmap(v, r, p)
+    vector_av *v
+    NV r
+    AV *p
+PREINIT:
+    I32 len, size, bytes, i;
+    unsigned char bit;
+    NV r2;
+    unsigned char *pv;
+CODE:
+    len = av_len(v);
+    r2 = r * r;
+    size = av_len(p);
+    bytes = (size + 7) / 8;
+    RETVAL = newSV((size + 7) / 8);
+    SvPOK_on(RETVAL);
+    SvCUR_set(RETVAL, bytes);
+    pv = SvPVX(RETVAL);
+    memset(pv, 0, bytes);
+    for (bit = 1, i = 0; i < size; i++) {
+        SV **svp = av_fetch(p, i, 0);
+        vector_av *e;
+        if (!svp) Perl_croak(aTHX_ "undef element found in array");
+        e = sv_to_vector_av(*svp);
+        check_len(e, len);
+        if (dist2(v, e, len) <= r2) *pv |= bit;
+        bit <<= 1;
+        if (!bit) {
+            pv++;
+            bit = 1;
+        }
+    }
+OUTPUT:
+    RETVAL
