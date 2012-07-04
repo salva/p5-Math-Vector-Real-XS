@@ -4,5 +4,6 @@ MANIFEST
 ppport.h
 README
 XS.xs
+mvr.h
 t/Math-Vector-Real-XS.t
 lib/Math/Vector/Real/XS.pm
