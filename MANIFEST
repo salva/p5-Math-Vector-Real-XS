@@ -1,9 +1,12 @@
 Changes
+lib/Math/Vector/Real/XS.pm
 Makefile.PL
 MANIFEST
+mvr.h
 ppport.h
 README
-XS.xs
-mvr.h
 t/Math-Vector-Real-XS.t
-lib/Math/Vector/Real/XS.pm
+t/Math-Vector-Real.t
+t/pods.t
+typemap
+XS.xs

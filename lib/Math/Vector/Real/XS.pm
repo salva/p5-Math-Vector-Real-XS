@@ -19,7 +19,7 @@ Math::Vector::Real::XS - Real vector arithmetic in fast XS
 =head1 SYNOPSIS
 
   use Math::Vector::Real;
-  blah blah blah
+  ...
 
 =head1 DESCRIPTION
 
