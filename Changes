@@ -1,5 +1,8 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.02
+        - on tests, when comparing floats allow for a small error
+
 0.01  Wed Jun 27 13:41:53 2012
 	- original version; created by h2xs 1.23 with options
 		-An Math::Vector::Real::XS
