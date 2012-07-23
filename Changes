@@ -1,5 +1,9 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.03  23 Jul, 2012
+        - The way object references were being created was
+          incompatible with perl 5.10 and older
+
 0.02  Jul 18, 2012
         - on tests, when comparing floats allow for a small error
 

@@ -56,7 +56,12 @@ mvr_from_sv(pTHX_ SV *sv) {
 static void
 sv_set_mvr(pTHX_ SV *sv, mvr av) {
     HV *stash;
+#if (PERL_VERSION < 12)
+    sv_upgrade(sv, SVt_RV);
+#else
     sv_upgrade(sv, SVt_IV);
+#endif
+    SvTEMP_off((SV*)av);
     SvRV_set(sv, (SV*)(av));
     SvROK_on(sv);
     stash = (mvr_stash_cache ? mvr_stash_cache : gv_stashpv("Math::Vector::Real", GV_ADD));    
