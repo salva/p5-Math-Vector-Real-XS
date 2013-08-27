@@ -3,7 +3,7 @@ package Math::Vector::Real::XS;
 our $VERSION = '0.03';
 
 use strict;
-use warnings;
+local $^W;
 
 require XSLoader;
 XSLoader::load('Math::Vector::Real::XS', $VERSION);
