@@ -19,3 +19,5 @@ mkdir "dependencies";
 chdir "dependencies" or die "unable to chdir to dependencies: $!";
 system "git clone https://github.com/salva/p5-Math-Vector-Real";
 
+chdir "..";
+system "ls -l t/";
