@@ -1,5 +1,9 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.04  27 Aug, 2013
+        - eliminate redefined warnings when called with $^W set (bug
+          report by Demian Riccardi)
+
 0.03  23 Jul, 2012
         - The way object references were being created was
           incompatible with perl 5.10 and older

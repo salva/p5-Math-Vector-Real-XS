@@ -8,5 +8,6 @@ README
 t/Math-Vector-Real-XS.t
 t/Math-Vector-Real.t
 t/pods.t
+t/warnings.t
 typemap
 XS.xs
