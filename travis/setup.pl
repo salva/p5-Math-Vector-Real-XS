@@ -13,7 +13,7 @@ for my $test ("Math-Vector-Real", "warnings") {
     unlink $target;
     symlink $src, $target
         or die "unable to symlink ${target}: $!";
-    print "$target --> $src\n";
+    print STDERR "$target --> $src\n";
 }
 
 mkdir "dependencies";
