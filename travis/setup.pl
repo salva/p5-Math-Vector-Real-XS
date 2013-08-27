@@ -9,10 +9,11 @@ unless ($ENV{TRAVIS}) {
 
 for my $test ("Math-Vector-Real", "warnings") {
     my $target = "t/$test.t";
-    my $src = "dependencies/p5-Math-Vector-Real/$target";
+    my $src = "../dependencies/p5-Math-Vector-Real/$target";
     unlink $target;
     symlink $src, $target
-    or die "unable to symlink ${target}: $!";
+        or die "unable to symlink ${target}: $!";
+    print "$target --> $src\n";
 }
 
 mkdir "dependencies";
