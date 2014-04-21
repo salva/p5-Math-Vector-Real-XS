@@ -1,5 +1,8 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.05
+        - add max_dist2_between_boxes method
+
 0.04  27 Aug, 2013
         - eliminate redefined warnings when called with $^W set (bug
           report by Demian Riccardi)
