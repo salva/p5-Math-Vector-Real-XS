@@ -292,4 +292,32 @@ mvr_versor_me_unsafe(pTHX_ mvr v, I32 len) {
     }
 }
 
+static NV
+mvr_max_dist2_between_boxes(pTHX_ mvr a0, mvr a1, mvr b0, mvr b1, I32 len) {
+    NV d2 = 0;
+    I32 i;
+    for (i = 0; i < len; i++) {
+        NV na0 = mvr_get(aTHX_ a0, i);
+        NV na1 = mvr_get(aTHX_ a1, i);
+        NV nb0 = mvr_get(aTHX_ b0, i);
+        NV nb1 = mvr_get(aTHX_ b1, i);
+        if (na1 > na0) {
+            NV tmp = na0;
+            na0 = na1;
+            na1 = tmp;
+        }
+        if (nb1 > nb0) {
+            NV tmp = nb0;
+            nb0 = nb1;
+            nb1 = tmp;
+        }
+        NV d0 = nb1 - na0;
+        NV d1 = nb0 - na1;
+        d0 *= d0;
+        d1 *= d1;
+        d2 += (d0 > d1 ? d0 : d1);
+    }
+    return d2;
+}
+
 #endif

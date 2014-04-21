@@ -398,6 +398,24 @@ CODE:
 OUTPUT:
     RETVAL
 
+NV
+max_dist2_between_boxes(klass, a0, a1, b0, b1)
+    SV *klass = NO_INIT
+    mvr a0
+    mvr a1
+    mvr b0
+    mvr b1
+PREINIT:
+    I32 len;
+CODE:
+    len = mvr_len(aTHX_ a0);
+    mvr_check_len(aTHX_ a1, len);
+    mvr_check_len(aTHX_ b0, len);
+    mvr_check_len(aTHX_ b1, len);
+    RETVAL = mvr_max_dist2_between_boxes(aTHX_ a0, a1, b0, b1, len);
+OUTPUT:
+    RETVAL
+
 void
 box(klass, ...)
     SV *klass = NO_INIT
