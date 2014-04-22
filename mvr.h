@@ -292,11 +292,18 @@ mvr_versor_me_unsafe(pTHX_ mvr v, I32 len) {
     }
 }
 
+static void
+mvr_first_orthant_reflection(pTHX_ mvr v, I32 len, mvr out) {
+    I32 i;
+    for (i = 0; i <= len; i++)
+        mvr_set(aTHX_ out, i, fabs(mvr_get(aTHX_ v, i)));
+}
+
 static NV
 mvr_max_dist2_between_boxes(pTHX_ mvr a0, mvr a1, mvr b0, mvr b1, I32 len) {
-    NV d2 = 0;
     I32 i;
-    for (i = 0; i < len; i++) {
+    NV d2 = 0;
+    for (i = 0; i <= len; i++) {
         NV na0 = mvr_get(aTHX_ a0, i);
         NV na1 = mvr_get(aTHX_ a1, i);
         NV nb0 = mvr_get(aTHX_ b0, i);
