@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile( NAME          => 'Math::Vector::Real::XS',
                VERSION_FROM  => 'lib/Math/Vector/Real/XS.pm',
-               PREREQ_PM     => { 'Math::Vector::Real' => '0.10' },
+               PREREQ_PM     => { 'Math::Vector::Real' => '0.11' },
                ABSTRACT_FROM => 'lib/Math/Vector/Real/XS.pm',
                AUTHOR        => 'Salvador Fandiño <sfandino@yahoo.com>',
                LIBS          => [''],
