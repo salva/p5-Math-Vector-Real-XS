@@ -1,6 +1,6 @@
 package Math::Vector::Real::XS;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use strict;
 local $^W;
@@ -45,7 +45,7 @@ wishlist: L<http://amzn.com/w/1WU1P6IR5QZ42>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2012, 2013 by Salvador FandiE<ntilde>o (sfandino@yahoo.com).
+Copyright (C) 2012-2014 by Salvador FandiE<ntilde>o (sfandino@yahoo.com).
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.14.2 or,

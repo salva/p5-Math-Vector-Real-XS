@@ -1,6 +1,6 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
-0.05
+0.05 24 April 2014
         - add first_orthant_reflection method
         - add max_dist2_between_boxes method
 
