@@ -211,6 +211,7 @@ CODE:
     nv1 = SvNV(sv1);
     if (nv1 == 0) Perl_croak(aTHX_ "illegal division by zero");
     mvr_scalar_product_me(aTHX_ v0, 1.0 / nv1, mvr_len(aTHX_ v0));
+    XSRETURN(1);
 
 mvr 
 cross(v0, v1, rev = &PL_sv_undef)
