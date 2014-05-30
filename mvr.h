@@ -84,6 +84,11 @@ mvr_clone(pTHX_ mvr v, I32 len) {
     return av;
 }
 
+static mvr
+mvr_2mortal(pTHX_ mvr v) {
+    return (mvr)sv_2mortal((SV*)v);
+}
+
 static int
 mvr_equal(pTHX_ mvr v0, mvr v1, I32 len) {
     I32 i;
