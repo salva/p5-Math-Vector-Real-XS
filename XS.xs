@@ -8,6 +8,7 @@
 
 #include "ppport.h"
 #include "mvr.h"
+#include <math.h>
 
 MODULE = Math::Vector::Real::XS		PACKAGE = Math::Vector::Real		
 PROTOTYPES: DISABLE
@@ -401,13 +402,65 @@ OUTPUT:
 
 mvr
 first_orthant_reflection(v)
-    mvr v;
+    mvr v
 PREINIT:
     I32 len;
 CODE:
     len = mvr_len(aTHX_ v);
     RETVAL = mvr_new(aTHX_ len);
     mvr_first_orthant_reflection(aTHX_ v, len, RETVAL);
+OUTPUT:
+    RETVAL
+
+NV
+dist2_to_box(v, w0, ...)
+    mvr v
+    mvr w0 = NO_INIT
+PREINIT:
+    I32 len, i, j;
+CODE:
+    len = mvr_len(aTHX_ v);
+    RETVAL = 0;
+    for (j = 1; j < items; j++) {
+        mvr w = mvr_from_sv(aTHX_ ST(j));
+	mvr_check_len(aTHX_ w, len);
+    }
+    for (i = 0; i <= len; i++) {
+	NV c = mvr_get(aTHX_ v, i);
+	NV min_d = INFINITY;
+	for (j = 1; j < items; j++) {
+	    mvr w = mvr_from_sv(aTHX_ ST(j));
+	    NV d = fabs(mvr_get(aTHX_ w, i) - c);
+	    min_d = (d < min_d ? d : min_d);
+	}
+	RETVAL += min_d * min_d;
+    }
+OUTPUT:
+    RETVAL
+
+NV
+max_dist2_to_box(v, w0, ...)
+    mvr v
+    mvr w0 = NO_INIT
+PREINIT:
+    I32 len, i, j;
+CODE:
+    len = mvr_len(aTHX_ v);
+    RETVAL = 0;
+    for (j = 1; j < items; j++) {
+	mvr w = mvr_from_sv(aTHX_ ST(j));
+	mvr_check_len(aTHX_ w, len);
+    }
+    for (i = 0; i <= len; i++) {
+	NV c = mvr_get(aTHX_ v, i);
+	NV max_d = 0;
+	for (j = 1; j < items; j++) {
+	    mvr w = mvr_from_sv(aTHX_ ST(j));
+	    NV d = fabs(mvr_get(aTHX_ w, i) - c);
+	    max_d = (d > max_d ? d : max_d);
+	}
+	RETVAL += max_d * max_d;
+    }
 OUTPUT:
     RETVAL
 
@@ -426,6 +479,32 @@ CODE:
     mvr_check_len(aTHX_ b0, len);
     mvr_check_len(aTHX_ b1, len);
     RETVAL = mvr_max_dist2_between_boxes(aTHX_ a0, a1, b0, b1, len);
+OUTPUT:
+    RETVAL
+
+mvr
+sum(klass, ...)
+    SV *klass;
+PREINIT:
+    I32 i, j, len;
+CODE:
+    i = (SvROK(klass) ? 0 : 1);
+    if (items > i) {
+	mvr v = mvr_from_sv(aTHX_ ST(i));
+	len = mvr_len(aTHX_ v);
+	RETVAL = mvr_clone(aTHX_ v, len);
+	for (i++; i < items; i++) {
+	    v = mvr_from_sv(aTHX_ ST(i));
+	    mvr_check_len(aTHX_ v, len);
+	    for (j = 0; j <= len; j++) {
+		SV *sv = mvr_get_sv(aTHX_ RETVAL, j);
+		sv_setnv(sv, SvNV(sv) + mvr_get(aTHX_ v, j));
+	    }
+	}
+    }
+    else {
+	XSRETURN(0);
+    }
 OUTPUT:
     RETVAL
 
