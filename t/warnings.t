@@ -16,3 +16,4 @@ BEGIN { undef $SIG{__WARN__} }
 is($warnings, 0, '0 warnings');
 
 done_testing;
+
