@@ -7,7 +7,7 @@ unless ($ENV{TRAVIS}) {
     die "This script is only intended to be run from Travis CI platform\n";
 }
 
-for my $test ("Math-Vector-Real", "warnings") {
+for my $test ("Math-Vector-Real") {
     my $target = "t/$test.t";
     my $src = "../dependencies/p5-Math-Vector-Real/$target";
     unlink $target;
