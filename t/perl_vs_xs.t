@@ -47,7 +47,7 @@ for my $dim (1, 2, 3, 10) {
 
         eq_vector([$o->dist2_to_box(@v)],
                   [$o->pp_dist2_to_box(@v)],
-                  "v->max_dist2_to_box dim: $dim, n: $n");
+                  "v->dist2_to_box dim: $dim, n: $n");
 
         eq_vector([$o->max_dist2_to_box(@v)],
                   [$o->pp_max_dist2_to_box(@v)],
