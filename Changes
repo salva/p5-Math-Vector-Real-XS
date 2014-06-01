@@ -1,5 +1,9 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.07  Jun 1, 2014
+        - fix dist2_to_box method
+        - add more tests
+
 0.06  May 30, 2014
 	- add new dist2_box, max_dist2_to_box and sum methods
 	- add C mvr_2mortal helper
