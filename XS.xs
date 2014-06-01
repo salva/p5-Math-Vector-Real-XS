@@ -426,14 +426,24 @@ CODE:
 	mvr_check_len(aTHX_ w, len);
     }
     for (i = 0; i <= len; i++) {
-	NV c = mvr_get(aTHX_ v, i);
-	NV min_d = INFINITY;
+	NV c_min = INFINITY;
+        NV c_max = -INFINITY;
+        NV c;
 	for (j = 1; j < items; j++) {
 	    mvr w = mvr_from_sv(aTHX_ ST(j));
-	    NV d = fabs(mvr_get(aTHX_ w, i) - c);
-	    min_d = (d < min_d ? d : min_d);
+	    c = mvr_get(aTHX_ w, i);
+	    c_min = (c < c_min ? c : c_min);
+	    c_max = (c > c_max ? c : c_max);
 	}
-	RETVAL += min_d * min_d;
+        c = mvr_get(aTHX_ v, i);
+        if (c < c_min) {
+            NV d = c_min - c;
+            RETVAL += d * d;
+        }
+        if (c > c_max) {
+            NV d = c_max - c;
+            RETVAL += d * d;
+        }
     }
 OUTPUT:
     RETVAL
