@@ -1,5 +1,8 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.08  Mar 11, 2015
+        - add support for dist2_between_boxes method
+
 0.07  Jun 1, 2014
         - fix dist2_to_box method
         - add more tests

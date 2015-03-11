@@ -313,21 +313,54 @@ mvr_max_dist2_between_boxes(pTHX_ mvr a0, mvr a1, mvr b0, mvr b1, I32 len) {
         NV na1 = mvr_get(aTHX_ a1, i);
         NV nb0 = mvr_get(aTHX_ b0, i);
         NV nb1 = mvr_get(aTHX_ b1, i);
-        if (na1 > na0) {
-            NV tmp = na0;
-            na0 = na1;
-            na1 = tmp;
+        NV d0, d1;
+        if (na0 > na1) {
+            NV tmp = na1;
+            na1 = na0;
+            na0 = tmp;
         }
-        if (nb1 > nb0) {
-            NV tmp = nb0;
-            nb0 = nb1;
-            nb1 = tmp;
+        if (nb0 > nb1) {
+            NV tmp = nb1;
+            nb1 = nb0;
+            nb0 = tmp;
         }
-        NV d0 = nb1 - na0;
-        NV d1 = nb0 - na1;
+        d0 = nb0 - na1;
+        d1 = nb1 - na0;
         d0 *= d0;
         d1 *= d1;
         d2 += (d0 > d1 ? d0 : d1);
+    }
+    return d2;
+}
+
+static NV
+mvr_dist2_between_boxes(pTHX_ mvr a0, mvr a1, mvr b0, mvr b1, I32 len) {
+    I32 i;
+    NV d2 = 0;
+    for (i = 0; i <= len; i++) {
+        NV na0 = mvr_get(aTHX_ a0, i);
+        NV na1 = mvr_get(aTHX_ a1, i);
+        NV nb0 = mvr_get(aTHX_ b0, i);
+        NV nb1 = mvr_get(aTHX_ b1, i);
+        NV d0;
+        if (na0 > na1) {
+            NV tmp = na1;
+            na1 = na0;
+            na0 = tmp;
+        }
+        if (nb0 > nb1) {
+            NV tmp = nb1;
+            nb1 = nb0;
+            nb0 = tmp;
+        }
+        d0 = na0 - nb1;
+        if (d0 >= 0)
+            d2 += d0 * d0;
+        else {
+            NV d1 = nb0 - na1;
+            if (d1 > 0)
+                d2 += d1 * d1;
+        }
     }
     return d2;
 }
