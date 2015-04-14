@@ -328,7 +328,20 @@ PREINIT:
 CODE:
     len = mvr_len(aTHX_ v0);
     mvr_check_len(aTHX_ v1, len);
-    RETVAL = mvr_manhattan_dist(aTHX_ v0, v1);
+    RETVAL = mvr_manhattan_dist(aTHX_ v0, v1, len);
+OUTPUT:
+    RETVAL
+
+NV
+chebyshev_dist(v0, v1)
+     mvr v0
+     mvr v1
+PREINIT:
+     I32 len;
+CODE:
+    len = mvr_len(aTHX_ v0);
+    mvr_check_len(aTHX_ v1, len);
+    RETVAL = mvr_chebyshev_dist(aTHX_ v0, v1, len);
 OUTPUT:
     RETVAL
 
