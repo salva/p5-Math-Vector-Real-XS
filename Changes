@@ -1,5 +1,8 @@
 Revision history for Perl extension Math::Vector::Real::XS.
 
+0.10  Apr 15, 2015
+        - Check if macro SvNOK_nog is available before using it
+
 0.09  Apr 14, 2015
         - add method chebyshev_dist
         - inside most mvr methods, unfold code into two versions, one

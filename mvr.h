@@ -38,17 +38,21 @@ mvr_regular(pTHX_ mvr av) {
     return (!MVR_UNLIKELY(SvRMAGICAL(av)) && !MVR_UNLIKELY(AvREIFY(av)));
 }
 
-#define MVR_REGULAR (MVR_LIKELY(mvr_regular(aTHX_ v)))
+#define MVR_REGULAR  (MVR_LIKELY(mvr_regular(aTHX_ v)))
 
-#define MVR_REGULAR2 (MVR_LIKELY(mvr_regular(aTHX_ v0)) &&      \
-                      MVR_LIKELY(mvr_regular(aTHX_ v1)))
+#define MVR_REGULAR2 (MVR_LIKELY(MVR_LIKELY(mvr_regular(aTHX_ v0)) &&     \
+                                 MVR_LIKELY(mvr_regular(aTHX_ v1))))
 
-#define MVR_REGULAR4 (MVR_LIKELY(mvr_regular(aTHX_ a0)) &&      \
-                      MVR_LIKELY(mvr_regular(aTHX_ a1)) &&      \
-                      MVR_LIKELY(mvr_regular(aTHX_ b0)) &&      \
-                      MVR_LIKELY(mvr_regular(aTHX_ b1)))
+#define MVR_REGULAR4 (MVR_LIKELY(MVR_LIKELY(mvr_regular(aTHX_ a0)) &&     \
+                                 MVR_LIKELY(mvr_regular(aTHX_ a1)) &&   \
+                                 MVR_LIKELY(mvr_regular(aTHX_ b0)) &&   \
+                                 MVR_LIKELY(mvr_regular(aTHX_ b1))))
 
+#ifdef SvNOK_nog
 #define MVR_SvNV(a) (LIKELY(SvNOK_nog(a) != 0) ? SvNVX(a) : sv_2nv(a))
+#else
+#define MVR_SvNV(a) (SvNV(a))
+#endif
 
 static NV
 mvr_get(pTHX_ mvr av, I32 ix) {
