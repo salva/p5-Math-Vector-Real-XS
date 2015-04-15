@@ -1,6 +1,6 @@
 package Math::Vector::Real::XS;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use strict;
 local $^W;
