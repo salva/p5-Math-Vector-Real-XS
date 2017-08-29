@@ -355,6 +355,7 @@ mvr_scalar_product(pTHX_ mvr v, NV s, I32 len, mvr out) {
     }
 }
 
+static void
 mvr_scalar_product_me(pTHX_ mvr v, NV scl, I32 len) {
     I32 i;
     if (MVR_REGULAR) {
