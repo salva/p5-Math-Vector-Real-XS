@@ -9,4 +9,9 @@ WriteMakefile( NAME          => 'Math::Vector::Real::XS',
                LIBS          => [''],
                DEFINE        => '',
                INC           => '-I.',
+               META_MERGE => {
+                   resources => {
+                       repository => 'https://github.com/salva/p5-Math-Vector-Real-XS',
+                   },
+               },
              );
